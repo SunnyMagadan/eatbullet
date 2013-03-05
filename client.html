@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>
+      <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+
+      <script>
+         // WAMP session object
+        var sess = null;
+
+        window.onload = function() {
+
+           var wsuri;
+           if (window.location.protocol === "file:") {
+              wsuri = "ws://localhost:9000";
+           } else {
+              wsuri = "ws://" + window.location.hostname + ":9000";
+           }
+
+           // connect to WAMP server
+           ab.connect(wsuri,
+
+              // WAMP session was established
+              function (session) {
+
+                 sess = session;
+
+                 console.log("Connected to " + wsuri);
+                 test();
+              },
+
+              // WAMP session is gone
+              function (code, reason) {
+
+                 sess = null;
+
+                 if (code == ab.CONNECTION_UNSUPPORTED) {
+                    window.location = "http://autobahn.ws/unsupportedbrowser";
+                 } else {
+                    console.log(reason);
+                 }
+              }
+           );
+        };
+
+         function makeid() {
+             var text = "";
+             var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+             for( var i=0; i < 5; i++ )
+                 text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+             return text;
+         }
+
+        function test() {
+            sess.prefix("event", "http://localhost:8080/");
+
+            var login = 'player' + makeid();
+
+            sess.call("event:api#login", login).then(
+              function (res) {
+                 console.log("RPC result: " + res);
+                 $('#user').html(login);
+                 sess.subscribe("event:players", onEvent);
+              },
+              function (error) {
+                 console.log("RPC error: " + error.desc);
+              }
+            );
+            //sess.subscribe("http://localhost:8080/players", onEvent);
+        }
+
+        function onEvent(topicUri, event) {
+           console.log(topicUri);
+           console.log(event);
+           $('#users').html(event.join(', '));
+        }
+
+        function publishEvent() {
+           sess.publish("http://example.com/simple", {'foo': 'bar', 'baz': 23});
+        }
+      </script>
+   </head>
+   <body>
+      <h1>PubSub with AutobahnJS - Example 1</h1>
+      <noscript>
+         <span style="color: #f00; font-weight: bold;">
+            You need to turn on JavaScript.
+         </span>
+      </noscript>
+      <button onclick="publishEvent()">Publish</button>
+      <br>
+      My name is <span id="user"></span>
+      <div id="users"></div>
+   </body>
+ </html>
