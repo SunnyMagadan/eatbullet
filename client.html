@@ -2,46 +2,66 @@
 <html>
    <head>
       <script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>
-      <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+       <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
+       <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+       <script src="http://code.jquery.com/ui/1.10.1/jquery-ui.js"></script>
 
       <script>
-         // WAMP session object
-        var sess = null;
+      $(function(){
+          var userName = '';
+          // WAMP session object
+          var sess = null;
 
-        window.onload = function() {
+          $( "#dialog-form" ).dialog({
+            autoOpen: false,
+            height: 300,
+            width: 350,
+            modal: true,
+            buttons: {
+                "Login": function() {
+                    userName = $('#name').val();
+                    initSession();
+                    $( this ).dialog( "close" );
+                }
+            }
+          });
+          $( "#dialog-form" ).dialog( "open" );
 
-           var wsuri;
-           if (window.location.protocol === "file:") {
-              wsuri = "ws://localhost:9000";
-           } else {
-              wsuri = "ws://" + window.location.hostname + ":9000";
-           }
+          function initSession(){
+             var wsuri;
+             if (window.location.protocol === "file:") {
+                wsuri = "ws://localhost:9000";
+             } else {
+                wsuri = "ws://" + window.location.hostname + ":9000";
+             }
 
-           // connect to WAMP server
-           ab.connect(wsuri,
+             // connect to WAMP server
+             ab.connect(wsuri,
 
-              // WAMP session was established
-              function (session) {
+                // WAMP session was established
+                function (session) {
 
-                 sess = session;
+                   sess = session;
 
-                 console.log("Connected to " + wsuri);
-                 test();
-              },
+                   console.log("Connected to " + wsuri);
 
-              // WAMP session is gone
-              function (code, reason) {
+                   sess.prefix("eatbullet", "http://localhost:8080/");
+                   login();
+                },
 
-                 sess = null;
+                // WAMP session is gone
+                function (code, reason) {
 
-                 if (code == ab.CONNECTION_UNSUPPORTED) {
-                    window.location = "http://autobahn.ws/unsupportedbrowser";
-                 } else {
-                    console.log(reason);
-                 }
-              }
-           );
-        };
+                   sess = null;
+
+                   if (code == ab.CONNECTION_UNSUPPORTED) {
+                      window.location = "http://autobahn.ws/unsupportedbrowser";
+                   } else {
+                      console.log(reason);
+                   }
+                }
+             );
+          }
 
          function makeid() {
              var text = "";
@@ -53,16 +73,12 @@
              return text;
          }
 
-        function test() {
-            sess.prefix("event", "http://localhost:8080/");
-
-            var login = 'player' + makeid();
-
-            sess.call("event:api#login", login).then(
+        function login() {
+            sess.call("eatbullet:api#login", userName).then(
               function (res) {
                  console.log("RPC result: " + res);
-                 $('#user').html(login);
-                 sess.subscribe("event:players", onEvent);
+                 $('#user').html(userName);
+                 sess.subscribe("eatbullet:games", onGamesList);
               },
               function (error) {
                  console.log("RPC error: " + error.desc);
@@ -71,18 +87,29 @@
             //sess.subscribe("http://localhost:8080/players", onEvent);
         }
 
-        function onEvent(topicUri, event) {
+        function onGamesList(topicUri, event) {
            console.log(topicUri);
            console.log(event);
-           $('#users').html(event.join(', '));
+           $('#games').html(event.join(', '));
         }
 
         function publishEvent() {
            sess.publish("http://example.com/simple", {'foo': 'bar', 'baz': 23});
         }
+      });
       </script>
    </head>
    <body>
+       <div id="dialog-form" title="Create new user">
+           <p class="validateTips">All form fields are required.</p>
+           <form>
+           <fieldset>
+           <label for="name">Login</label>
+           <input type="text" name="name" id="name" class="text ui-widget-content ui-corner-all" />
+           </fieldset>
+           </form>
+       </div>
+
       <h1>PubSub with AutobahnJS - Example 1</h1>
       <noscript>
          <span style="color: #f00; font-weight: bold;">
@@ -92,6 +119,6 @@
       <button onclick="publishEvent()">Publish</button>
       <br>
       My name is <span id="user"></span>
-      <div id="users"></div>
+      <div id="games"></div>
    </body>
  </html>
