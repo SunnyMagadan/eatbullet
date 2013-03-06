@@ -126,10 +126,14 @@ class PubSubHandlers(object):
     def games(self, topicUriPrefix, topicUriSuffix):
         print "client wants to subscribe to %s%s" % (topicUriPrefix, topicUriSuffix)
 
-        if topicUriSuffix:
-            game_id = int(topicUriSuffix)
+        if not topicUriSuffix:
+            return True
+
+        if len(topicUriSuffix) > 1 and topicUriSuffix[0] == '/':
+            game_id = int(topicUriSuffix[1:]) - 1
             games = self.protocol.factory.games
-            if 0 < topicUriSuffix < len(games) and self.protocol in games[game_id].players:
+            if 0 <= game_id < len(games) and self.protocol in games[game_id].players:
+                print 'subscribed to game'
                 return True
 
         return False
@@ -142,8 +146,8 @@ class PubSubHandlers(object):
 
     def send_games_list(self):
         factory = self.protocol.factory
+        print 'before send games list'
         factory.dispatch(_url('games'), [game.id for game in factory.games])
-
 
 
 class EatBulletServerProtocol(WampServerProtocol):
@@ -152,8 +156,7 @@ class EatBulletServerProtocol(WampServerProtocol):
         self.api = RpcApi(self)
         self.login = ''
         self.registerForRpc(self.api, _url('api#'))
-        self.registerForPubSub(_url('players'))
-        
+
         self.pubsub = PubSubHandlers(self)
         self.registerHandlerForPubSub(self.pubsub, BASE_URL)
 
@@ -166,14 +169,18 @@ class EatBulletServerFactory(WampServerFactory):
 
     def __init__(self, url, debug=False, debugCodePaths=False, debugWamp=False, debugApp=False, externalPort=None):
         self.games = []
-        WampServerFactory.__init__(self, url, debug=debug, debugCodePaths=debugCodePaths, externalPort=externalPort)
+        WampServerFactory.__init__(self, url,
+                                   debug=debug,
+                                   debugCodePaths=debugCodePaths,
+                                   debugWamp=True,
+                                   externalPort=externalPort)
 
 
 if __name__ == '__main__':
 
     log.startLogging(sys.stdout)
     
-    factory = WampServerFactory('ws://localhost:9000', debugWamp=True)
+    factory = EatBulletServerFactory('ws://localhost:9000', debugWamp=True)
     factory.protocol = EatBulletServerProtocol
     listenWS(factory)
 

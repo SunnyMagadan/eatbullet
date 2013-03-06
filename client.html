@@ -7,11 +7,11 @@
        <script src="http://code.jquery.com/ui/1.10.1/jquery-ui.js"></script>
 
       <script>
-      $(function(){
-          var userName = '';
-          // WAMP session object
-          var sess = null;
+        var userName = '';
+        // WAMP session object
+        var sess = null;
 
+        $(function(){
           $( "#dialog-form" ).dialog({
             autoOpen: false,
             height: 300,
@@ -26,77 +26,96 @@
             }
           });
           $( "#dialog-form" ).dialog( "open" );
+        });
 
-          function initSession(){
-             var wsuri;
-             if (window.location.protocol === "file:") {
+        function initSession(){
+            var wsuri;
+            if (window.location.protocol === "file:") {
                 wsuri = "ws://localhost:9000";
-             } else {
+            } else {
                 wsuri = "ws://" + window.location.hostname + ":9000";
-             }
+            }
 
-             // connect to WAMP server
-             ab.connect(wsuri,
+            // connect to WAMP server
+            ab.connect(wsuri,
 
-                // WAMP session was established
-                function (session) {
+                    // WAMP session was established
+                    function (session) {
 
-                   sess = session;
+                        sess = session;
 
-                   console.log("Connected to " + wsuri);
+                        console.log("Connected to " + wsuri);
 
-                   sess.prefix("eatbullet", "http://localhost:8080/");
-                   login();
-                },
+                        sess.prefix("eatbullet", "http://localhost:8080/");
+                        login();
+                    },
 
-                // WAMP session is gone
-                function (code, reason) {
+                    // WAMP session is gone
+                    function (code, reason) {
 
-                   sess = null;
+                        sess = null;
 
-                   if (code == ab.CONNECTION_UNSUPPORTED) {
-                      window.location = "http://autobahn.ws/unsupportedbrowser";
-                   } else {
-                      console.log(reason);
-                   }
-                }
-             );
-          }
+                        if (code == ab.CONNECTION_UNSUPPORTED) {
+                            window.location = "http://autobahn.ws/unsupportedbrowser";
+                        } else {
+                            console.log(reason);
+                        }
+                    }
+            );
+        }
 
-         function makeid() {
-             var text = "";
-             var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        function makeid() {
+            var text = "";
+            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-             for( var i=0; i < 5; i++ )
-                 text += possible.charAt(Math.floor(Math.random() * possible.length));
+            for( var i=0; i < 5; i++ )
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
 
-             return text;
-         }
+            return text;
+        }
 
         function login() {
             sess.call("eatbullet:api#login", userName).then(
-              function (res) {
-                 console.log("RPC result: " + res);
-                 $('#user').html(userName);
-                 sess.subscribe("eatbullet:games", onGamesList);
-              },
-              function (error) {
-                 console.log("RPC error: " + error.desc);
-              }
+                function (res) {
+                    console.log("RPC result: " + res);
+                    $('#user').html(userName);
+                    sess.subscribe("eatbullet:games", onGamesList);
+                },
+                function (error) {
+                    console.log("RPC error: " + error.desc);
+                }
             );
             //sess.subscribe("http://localhost:8080/players", onEvent);
         }
 
         function onGamesList(topicUri, event) {
-           console.log(topicUri);
-           console.log(event);
-           $('#games').html(event.join(', '));
+            console.log(topicUri);
+            console.log(event);
+            $('#games').html(event.join(', '));
         }
 
         function publishEvent() {
-           sess.publish("http://example.com/simple", {'foo': 'bar', 'baz': 23});
+            sess.publish("http://example.com/simple", {'foo': 'bar', 'baz': 23});
         }
-      });
+
+        function newGame(){
+            sess.call("eatbullet:api#start_game").then(
+                function (res) {
+                    console.log("RPC result: " + res);
+                    $('#title').html("Game #" + res);
+                    sess.subscribe("eatbullet:games/" + res, onGameMessage);
+                },
+                function (error) {
+                    console.log("RPC error: " + error.desc);
+                }
+            );
+        }
+
+        function onGameMessage(topicUri, event)
+        {
+            console.log(topicUri);
+            console.log(event);
+        }
       </script>
    </head>
    <body>
@@ -110,15 +129,19 @@
            </form>
        </div>
 
-      <h1>PubSub with AutobahnJS - Example 1</h1>
       <noscript>
          <span style="color: #f00; font-weight: bold;">
             You need to turn on JavaScript.
          </span>
       </noscript>
+
+      <h1 id="title"></h1>
+
       <button onclick="publishEvent()">Publish</button>
       <br>
       My name is <span id="user"></span>
       <div id="games"></div>
+
+      <a href="#" onclick="newGame();return false;">New game</a>
    </body>
  </html>
