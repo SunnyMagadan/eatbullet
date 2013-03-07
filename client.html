@@ -74,6 +74,16 @@
             return text;
         }
 
+        function executeFunctionByName(functionName, context /*, args */) {
+          var args = Array.prototype.slice.call(arguments).splice(2);
+          var namespaces = functionName.split(".");
+          var func = namespaces.pop();
+          for(var i = 0; i < namespaces.length; i++) {
+            context = context[namespaces[i]];
+          }
+          return context[func].apply(this, args);
+        }
+
         function login() {
             sess.call("eatbullet:api#login", userName).then(
                 function (res) {
@@ -91,7 +101,13 @@
         function onGamesList(topicUri, event) {
             console.log(topicUri);
             console.log(event);
-            $('#games').html(event.join(', '));
+            gamesList = "<ul>";
+            for (index in event){
+                var gameId = event[index];
+                gamesList += "<li>Game #" + gameId + "<a href='#' onclick='joinGame(" + gameId + ")'>Join</a>" + "</li>";
+            }
+            gamesList += "</ul>";
+            $('#games').html(gamesList);
         }
 
         function publishEvent() {
@@ -103,6 +119,23 @@
                 function (res) {
                     console.log("RPC result: " + res);
                     $('#title').html("Game #" + res);
+                    $('#games').hide();
+                    $('#new-game').hide();
+                    sess.subscribe("eatbullet:games/" + res, onGameMessage);
+                },
+                function (error) {
+                    console.log("RPC error: " + error.desc);
+                }
+            );
+        }
+
+        function joinGame(gameId){
+            sess.call("eatbullet:api#join_game", gameId).then(
+                function (res) {
+                    console.log("RPC result: " + res);
+                    $('#title').html("Game #" + res);
+                    $('#games').hide();
+                    $('#new-game').hide();
                     sess.subscribe("eatbullet:games/" + res, onGameMessage);
                 },
                 function (error) {
@@ -115,6 +148,26 @@
         {
             console.log(topicUri);
             console.log(event);
+
+            executeFunctionByName(event.type, window, event.data);
+        }
+
+        function hint(data){
+            $('#history').append('<li>' + data + '</li>');
+        }
+
+        function players(data){
+           var players = "<ul>";
+            for (index in data){
+                var player = data[index];
+                players += "<li>" + player + "</li>";
+            }
+            players += "</ul>";
+           $('#players>p').html(players);
+        }
+
+        function state(data){
+
         }
       </script>
    </head>
@@ -137,11 +190,23 @@
 
       <h1 id="title"></h1>
 
-      <button onclick="publishEvent()">Publish</button>
+      <button onclick="turn()">Turn</button>
       <br>
       My name is <span id="user"></span>
-      <div id="games"></div>
 
-      <a href="#" onclick="newGame();return false;">New game</a>
+       <br>
+       <a id="new-game" href="#" onclick="newGame();return false;">New game</a>
+       <div id="games"></div>
+
+        <div id="players">
+            Players:
+            <p></p>
+        </div>
+
+        <div id="history">
+            History:
+            <ul>
+            </ul>
+        </div>
    </body>
  </html>
