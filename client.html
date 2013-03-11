@@ -7,6 +7,7 @@
        <script src="http://code.jquery.com/ui/1.10.1/jquery-ui.js"></script>
 
       <script>
+        var gameId = null;
         var userName = '';
         // WAMP session object
         var sess = null;
@@ -103,15 +104,22 @@
             console.log(event);
             gamesList = "<ul>";
             for (index in event){
-                var gameId = event[index];
+                gameId = event[index];
                 gamesList += "<li>Game #" + gameId + "<a href='#' onclick='joinGame(" + gameId + ")'>Join</a>" + "</li>";
             }
             gamesList += "</ul>";
             $('#games').html(gamesList);
         }
 
-        function publishEvent() {
-            sess.publish("http://example.com/simple", {'foo': 'bar', 'baz': 23});
+        function turn() {
+            sess.call("eatbullet:api#turn", gameId).then(
+                function (res) {
+                    console.log('RPC result: ' + res);
+                },
+                function (error) {
+                    console.log("RPC error: " + error.desc);
+                }
+            );
         }
 
         function newGame(){
@@ -167,7 +175,31 @@
         }
 
         function state(data){
+            $('#game').show();
+            $('#current-player').html(data.current_player);
+            $('#turn-number').html(data.turn);
+        }
 
+        function finished(data){
+            console.log(data);
+            if (data.winner == userName){
+                var message = 'You are the lucky one! Your opponent have ate bullet. What a shame.';
+            } else {
+                var message = 'Loser. You have lost your head. Your opponent is more luckily.';
+            }
+            alert(message);
+            $('#history').html('').hide();
+            $('#players').hide();
+            $('#game').hide();
+            $('#title').html('');
+            $('#shoot').hide();
+
+            $('#games').show();
+            $('#new-game').show();
+            sess.unsubscribe("eatbullet:games/" + gameId, function(res){
+                console.log(res);
+            });
+            gameId = null;
         }
       </script>
    </head>
@@ -190,7 +222,7 @@
 
       <h1 id="title"></h1>
 
-      <button onclick="turn()">Turn</button>
+      <button id="shoot" onclick="turn()">Shoot</button>
       <br>
       My name is <span id="user"></span>
 
@@ -207,6 +239,15 @@
             History:
             <ul>
             </ul>
+        </div>
+
+        <div id="game" style="display: none;">
+            <p>
+            Current player: <span id="current-player"></span>
+            </p>
+            <p>
+            Turn # <span id="turn-number"></span>
+            </p>
         </div>
    </body>
  </html>
