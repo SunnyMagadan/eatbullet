@@ -12,7 +12,7 @@ class RpcApi(object):
     @exportRpc
     def login(self, name):
         self.protocol.login = name
-        reactor.callLater(0, self.protocol.pubsub.send_games_list)
+        self.protocol.factory.send_games_list()
 
         return 'successfully logined'
 
@@ -22,11 +22,10 @@ class RpcApi(object):
 
     @exportRpc
     def join_game(self, game_id):
-        game_id = int(game_id) - 1
-        games = self.protocol.factory.games
+        game_id = int(game_id)
+        game = self.protocol.factory.games.get(game_id, None)
 
-        if 0 <= game_id < len(games):
-            game = games[game_id]
+        if game:
             return game.join(self.protocol)
 
         raise Exception(_url("error#failed_to_join"),
@@ -34,11 +33,10 @@ class RpcApi(object):
 
     @exportRpc
     def turn(self, game_id):
-        game_id = int(game_id) - 1
-        games = self.protocol.factory.games
+        game_id = int(game_id)
+        game = self.protocol.factory.games.get(game_id, None)
 
-        if 0 <= game_id < len(games):
-            game = games[game_id]
+        if game:
             return game.turn(self.protocol)
 
         raise Exception(_url("error#failed_to_turn"),

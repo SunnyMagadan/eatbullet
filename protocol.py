@@ -16,5 +16,6 @@ class EatBulletServerProtocol(WampServerProtocol):
         self.registerHandlerForPubSub(self.pubsub, _url())
 
     def connectionLost(self, reason):
-        self.pubsub.send_users_list(exclude=[self])
+        # TODO: Add sending of players list for all games related to current user
+        #self.pubsub.send_users_list(exclude=[self])
         WampServerProtocol.connectionLost(self, reason)

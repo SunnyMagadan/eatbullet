@@ -83,4 +83,4 @@ class EatBulletGame(object):
         self.send_game_message({'type': 'hint', 'data': message})
 
     def send_game_message(self, message):
-        reactor.callLater(0, self.factory.dispatch, self.game_url, message)
+        self.factory.send_message(self.game_url, message)

@@ -129,6 +129,8 @@
                     $('#title').html("Game #" + res);
                     $('#games').hide();
                     $('#new-game').hide();
+                    $('#history').show();
+                    $('#players').show();
                     sess.subscribe("eatbullet:games/" + res, onGameMessage);
                 },
                 function (error) {
@@ -144,6 +146,8 @@
                     $('#title').html("Game #" + res);
                     $('#games').hide();
                     $('#new-game').hide();
+                    $('#history').show();
+                    $('#players').show();
                     sess.subscribe("eatbullet:games/" + res, onGameMessage);
                 },
                 function (error) {
@@ -176,6 +180,7 @@
 
         function state(data){
             $('#game').show();
+            $('#shoot').show();
             $('#current-player').html(data.current_player);
             $('#turn-number').html(data.turn);
         }
@@ -189,6 +194,7 @@
             }
             alert(message);
             $('#history').html('').hide();
+            $('#players>p').html('');
             $('#players').hide();
             $('#game').hide();
             $('#title').html('');
@@ -196,9 +202,7 @@
 
             $('#games').show();
             $('#new-game').show();
-            sess.unsubscribe("eatbullet:games/" + gameId, function(res){
-                console.log(res);
-            });
+            sess.unsubscribe("eatbullet:games/" + gameId);
             gameId = null;
         }
       </script>
@@ -222,7 +226,7 @@
 
       <h1 id="title"></h1>
 
-      <button id="shoot" onclick="turn()">Shoot</button>
+      <button id="shoot" onclick="turn()" style="display: none;">Shoot</button>
       <br>
       My name is <span id="user"></span>
 
@@ -230,12 +234,12 @@
        <a id="new-game" href="#" onclick="newGame();return false;">New game</a>
        <div id="games"></div>
 
-        <div id="players">
+        <div id="players" style="display: none;">
             Players:
             <p></p>
         </div>
 
-        <div id="history">
+        <div id="history" style="display: none;">
             History:
             <ul>
             </ul>
